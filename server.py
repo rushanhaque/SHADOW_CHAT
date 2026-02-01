@@ -62,12 +62,14 @@ class MockRedis:
             self.ttls[key] = time.time() + seconds
 
 try:
-    r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
+    r = redis.from_url(redis_url, decode_responses=True)
     r.ping()
-    print("Connected to Redis")
-except Exception:
-    print("Redis not found, using MockRedis")
+    print(f"Connected to Redis at {redis_url}")
+except Exception as e:
+    print(f"Redis connection failed: {e}. Using MockRedis")
     r = MockRedis()
+
 
 # Room and Message Management
 class ConnectionManager:
@@ -145,4 +147,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Use the PORT environment variable if available (default to 8000 for local dev)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
