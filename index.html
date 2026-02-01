@@ -386,7 +386,7 @@
             const data = await res.json();
 
             const localKey = CryptoJS.lib.WordArray.random(32).toString(); // 256-bit key
-            const fullLink = `${window.location.protocol}//${window.location.host}/#${data.room_id}:${localKey}`;
+            const fullLink = `${window.location.protocol}//${window.location.host}/?room=${data.room_id}&key=${localKey}`;
 
             shareLink.innerText = fullLink;
             linkDisplay.style.display = 'block';
@@ -398,10 +398,21 @@
         });
 
         function checkUrl() {
+            // Check query parameters first (new format)
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+            const key = urlParams.get('key');
+
+            if (roomId && key) {
+                startChat(roomId, key);
+                return;
+            }
+
+            // Fallback to hash format (old format for backward compatibility)
             const hash = window.location.hash.substring(1);
             if (hash && hash.includes(':')) {
-                const [roomId, key] = hash.split(':');
-                startChat(roomId, key);
+                const [hashRoomId, hashKey] = hash.split(':');
+                startChat(hashRoomId, hashKey);
             }
         }
 
@@ -432,13 +443,11 @@
                     messagesDiv.innerHTML = '';
                     addSystemMessage("OPSEC PROTOCOL: CHANNEL PURGED AND TERMINATED.");
                     setTimeout(() => {
-                        window.location.hash = '';
-                        window.location.reload();
+                        window.location.href = window.location.origin;
                     }, 3000);
                 } else if (data.type === 'error') {
                     alert(data.message);
-                    window.location.hash = '';
-                    window.location.reload();
+                    window.location.href = window.location.origin;
                 }
             };
 
